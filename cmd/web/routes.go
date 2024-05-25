@@ -10,12 +10,14 @@ import (
 func (app *application) routes() http.Handler {
 	mux := chi.NewRouter()
 
-	// Registrar middleware
+	// register middlewere
 	mux.Use(middleware.Recoverer)
 
-	// Registrar rotas
+	// register routs
+	mux.Get("/", app.Home)
 
-	// Arquivos estáticos
+	// static assets
 
 	return mux
+
 }
