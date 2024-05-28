@@ -64,6 +64,6 @@ func (f *Form) Check(ok bool, key, message string) {
 }
 
 // Valido retorna true se não houver erros, caso contrário false
-func (f *Form) Valido() bool {
+func (f *Form) Valid() bool {
 	return len(f.Errors) == 0
 }
