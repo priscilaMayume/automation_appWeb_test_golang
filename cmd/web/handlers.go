@@ -11,17 +11,18 @@ import (
 
 var pathToTemplates = "./templates/"
 
-// Função para lidar com a rota Home
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	var td = make(map[string]any)
+
+	// Verifica se a sessão "test" existe
 	if app.Session.Exists(r.Context(), "test") {
 		msg := app.Session.GetString(r.Context(), "test")
 		td["test"] = msg
 	} else {
+		// Adiciona um valor à sessão "test" com a data e hora atual
 		app.Session.Put(r.Context(), "test", "Hit this page at " + time.Now().UTC().String())
 	}
 	_ = app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
-
 }
 
 type TemplateData struct {
@@ -30,7 +31,7 @@ type TemplateData struct {
 }
 
 func (app *application) render(w http.ResponseWriter, r *http.Request, t string, data *TemplateData) error {
-		// analisar o modelo a partir do disco
+	// Faz o parse do template a partir do disco.
 	parsedTemplate, err := template.ParseFiles(path.Join(pathToTemplates, t), path.Join(pathToTemplates, "base.layout.gohtml"))
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -39,7 +40,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, t string,
 
 	data.IP = app.ipFromContext(r.Context())
 
-	// executa o modelo, passando-lhe dados, se existirem
+	// Executa o template, passando os dados, se houver
 	err = parsedTemplate.Execute(w, data)
 	if err != nil {
 		return err
@@ -56,10 +57,11 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validar dados
+	// Valida os dados
 	form := NewForm(r.PostForm)
 	form.Required("email", "password")
 
+	// Verifica se o formulário é válido
 	if !form.Valid() {
 		fmt.Fprint(w, "failed validation")
 		return
@@ -69,7 +71,6 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.Form.Get("password")
 
 	log.Println(email, password)
-	fmt.Fprint(w, email)
 
-	
+	fmt.Fprint(w, email)
 }

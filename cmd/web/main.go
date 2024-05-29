@@ -7,21 +7,22 @@ import (
 	"github.com/alexedwards/scs/v2"
 )
 
-type application struct{
+// application estrutura que contém o gerenciador de sessões
+type application struct {
 	Session *scs.SessionManager
 }
 
 func main() {
-	// config do app
+	// Configura a aplicação
 	app := application{}
 
-	// obter a sessão
+	// Obtém um gerenciador de sessões
 	app.Session = getSession()
 
-	// print mensagem ao startar o serviço
+	// Imprime uma mensagem
 	log.Println("Starting server on port 8080...")
 
-	// iniciar o servidor
+	// Inicia o servidor
 	err := http.ListenAndServe(":8080", app.routes())
 	if err != nil {
 		log.Fatal(err)

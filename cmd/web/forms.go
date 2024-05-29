@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// errors é um tipo de conveniência, para que possamos ter uma função associada ao nosso mapa.
+// errors é um tipo de conveniência, para que possamos ter uma função vinculada ao nosso mapa.
 type errors map[string][]string
 
 func (e errors) Get(field string) string {
@@ -22,13 +22,13 @@ func (e errors) Add(field, message string) {
 	e[field] = append(e[field], message)
 }
 
-// Form é o tipo usado para instanciar a validação de formulário
+// Form é o tipo usado para instanciar a validação de formulários.
 type Form struct {
 	Data   url.Values
 	Errors errors
 }
 
-// NewForm inicializa uma estrutura de formulário
+// NewForm inicializa uma estrutura de formulário.
 func NewForm(data url.Values) *Form {
 	return &Form{
 		Data:   data,
@@ -36,7 +36,7 @@ func NewForm(data url.Values) *Form {
 	}
 }
 
-// Has verifica se o formulário possui um determinado campo
+// Has verifica se o formulário possui um campo específico.
 func (f *Form) Has(field string) bool {
 	x := f.Data.Get(field)
 	if x == "" {
@@ -45,12 +45,12 @@ func (f *Form) Has(field string) bool {
 	return true
 }
 
-// Required verifica os campos obrigatórios
+// Required verifica campos obrigatórios.
 func (f *Form) Required(fields ...string) {
 	for _, field := range fields {
 		value := f.Data.Get(field)
 		if strings.TrimSpace(value) == "" {
-			f.Errors.Add(field, "Este campo não pode estar em branco")
+			f.Errors.Add(field, "Este campo não pode ficar em branco")
 		}
 	}
 }
@@ -63,7 +63,7 @@ func (f *Form) Check(ok bool, key, message string) {
 	}
 }
 
-// Valido retorna true se não houver erros, caso contrário false
+// Valid retorna true se não houver erros, caso contrário, false.
 func (f *Form) Valid() bool {
 	return len(f.Errors) == 0
 }
