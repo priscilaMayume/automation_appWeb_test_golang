@@ -6,21 +6,10 @@ import (
 	"log"
 	"net/http"
 	"path"
-	"path/filepath"
 	"time"
 )
 
-var pathToTemplates string
-
-func init() {
-    // Define o caminho relativo para os templates
-    relativePath := "./templates/"
-    absPath, err := filepath.Abs(relativePath)
-    if err != nil {
-        log.Fatalf("Error getting absolute path: %v", err)
-    }
-    pathToTemplates = absPath
-}
+var pathToTemplates string // Referência externa à variável pathToTemplates que está no setup.go
 
 // Handler para a página inicial
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
