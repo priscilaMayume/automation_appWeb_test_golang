@@ -1,30 +1,21 @@
 package main
 
 import (
-	"log"
 	"os"
-	"path/filepath"
 	"testing"
 )
 
+// Variável global para a aplicação
 var app application
-func init() {
-    // Define o caminho relativo para os templates
-    relativePath := "./../../templates/"
-    absPath, err := filepath.Abs(relativePath)
-    if err != nil {
-        log.Fatalf("Error getting absolute path: %v", err)
-    }
-    pathToTemplates = absPath
-}
 
-
-// TestMain é a função principal de teste que configura o ambiente antes de executar os testes
+// Função de teste principal
 func TestMain(m *testing.M) {
+	// Define o caminho para os templates
 	pathToTemplates = "./../../templates/"
 	
+	// Inicializa a sessão da aplicação
 	app.Session = getSession()
 
-	// Executa os testes e retorna o resultado
+	// Executa os testes
 	os.Exit(m.Run())
 }

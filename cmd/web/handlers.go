@@ -9,77 +9,74 @@ import (
 	"time"
 )
 
-var pathToTemplates string // Referência externa à variável pathToTemplates que está no setup.go
+// Define o caminho para os templates
+var pathToTemplates = "./templates/"
 
 // Handler para a página inicial
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
-	log.Println("Home handler called") // Debug
-	var td = make(map[string]any)
+	// Mapa para armazenar os dados do template
+	var td = make(map[string]interface{})
 
-	// Verifica se a sessão "test" existe
+	// Verifica se existe uma chave na sessão
 	if app.Session.Exists(r.Context(), "test") {
 		msg := app.Session.GetString(r.Context(), "test")
 		td["test"] = msg
-		log.Println("Session exists with value:", msg) // Debug
 	} else {
-		// Adiciona um valor à sessão "test" com a data e hora atual
-		newValue := "Hit this page at " + time.Now().UTC().String()
-		app.Session.Put(r.Context(), "test", newValue)
-		log.Println("Session created with value:", newValue) // Debug
+		// Se não existir, adiciona uma chave com a data e hora atual
+		app.Session.Put(r.Context(), "test", "Hit this page at "+time.Now().UTC().String())
 	}
-	err := app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
-	if err != nil {
-		log.Println("Error rendering template:", err) // Debug
-	}
+
+	// Renderiza o template
+	_ = app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
 }
 
-// Estrutura para os dados do template
+// Estrutura de dados para passar para o template
 type TemplateData struct {
 	IP   string
-	Data map[string]any
+	Data map[string]interface{}
 }
 
-// Método para renderizar templates
+// Função para renderizar o template
 func (app *application) render(w http.ResponseWriter, r *http.Request, t string, data *TemplateData) error {
-	// Faz o parse do template a partir do disco.
+	// Faz o parse do template do disco
 	parsedTemplate, err := template.ParseFiles(path.Join(pathToTemplates, t), path.Join(pathToTemplates, "base.layout.gohtml"))
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
-		log.Println("Error parsing templates:", err) // Debug
 		return err
 	}
 
+	// Obtém o IP do contexto
 	data.IP = app.ipFromContext(r.Context())
 
-	// Executa o template, passando os dados, se houver
+	// Executa o template, passando os dados
 	err = parsedTemplate.Execute(w, data)
 	if err != nil {
-		log.Println("Error executing template:", err) // Debug
 		return err
 	}
 
 	return nil
 }
 
-// Handler para login
+// Handler para a página de login
 func (app *application) Login(w http.ResponseWriter, r *http.Request) {
+	// Faz o parse dos dados do formulário
 	err := r.ParseForm()
 	if err != nil {
-		log.Println("Error parsing form:", err) // Debug
+		log.Println(err)
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
-	// Valida os dados
+	// Valida os dados do formulário
 	form := NewForm(r.PostForm)
 	form.Required("email", "password")
 
-	// Verifica se o formulário é válido
 	if !form.Valid() {
 		fmt.Fprint(w, "failed validation")
 		return
 	}
 
+	// Obtém os dados do formulário
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 

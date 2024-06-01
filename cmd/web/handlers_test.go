@@ -5,28 +5,18 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func Test_application_handlers(t *testing.T) {
-	    // Configura o caminho relativo para os templates
-		relativePath := "./../../templates/"
-		absPath, err := filepath.Abs(relativePath)
-		if err != nil {
-			t.Fatalf("Error getting absolute path: %v", err)
-		}
-		pathToTemplates = absPath
-
-	// Definição dos testes com nome, URL e código de status esperado
 	var theTests = []struct {
 		name               string
 		url                string
 		expectedStatusCode int
 	}{
-		{"home", "/", http.StatusOK},
-		{"404", "/fish", http.StatusNotFound},
+		{"home", "/", http.StatusOK},  // Teste para a página inicial com status OK
+		{"404", "/fish", http.StatusNotFound},  // Teste para uma página não encontrada
 	}
 
 	routes := app.routes()
@@ -35,7 +25,7 @@ func Test_application_handlers(t *testing.T) {
 	ts := httptest.NewTLSServer(routes)
 	defer ts.Close()
 
-	// Percorre os dados de teste
+	// Itera pelos dados de teste
 	for _, e := range theTests {
 		resp, err := ts.Client().Get(ts.URL + e.url)
 		if err != nil {
@@ -43,7 +33,6 @@ func Test_application_handlers(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Verifica o código de status da resposta
 		if resp.StatusCode != e.expectedStatusCode {
 			t.Errorf("for %s: expected status %d, but got %d", e.name, e.expectedStatusCode, resp.StatusCode)
 		}
@@ -51,39 +40,30 @@ func Test_application_handlers(t *testing.T) {
 }
 
 func TestAppHome(t *testing.T) {
-	// Configura o caminho relativo para os templates
-	relativePath := "./../../templates/"
-	absPath, err := filepath.Abs(relativePath)
-	if err != nil {
-		t.Fatalf("Error getting absolute path: %v", err)
-	}
-	pathToTemplates = absPath
-
-	// Definição dos testes com nome, valor a ser colocado na sessão e HTML esperado
 	var tests = []struct {
 		name         string
 		putInSession string
 		expectedHTML string
 	}{
-		{"first visit", "", "<small>From Session:"},
-		{"second visit", "hello world!", "<small>From Session: hello world!"},
+		{"first visit", "", "<small>From Session:"},  // Teste para a primeira visita à página
+		{"second visit", "hello, world!", "<small>From Session: hello, world!"},  // Teste para a segunda visita à página
 	}
 
-	// Percorre os dados de teste
 	for _, e := range tests {
 		// Cria uma requisição HTTP GET para a raiz "/"
 		req, _ := http.NewRequest("GET", "/", nil)
+
 		req = addContextAndSessionToRequest(req, app)
 		_ = app.Session.Destroy(req.Context())
 
-		// Coloca um valor na sessão, se necessário
 		if e.putInSession != "" {
 			app.Session.Put(req.Context(), "test", e.putInSession)
 		}
 
-		// Cria um gravador de resposta HTTP
 		rr := httptest.NewRecorder()
+
 		handler := http.HandlerFunc(app.Home)
+
 		handler.ServeHTTP(rr, req)
 
 		// Verifica o código de status da resposta
@@ -100,31 +80,17 @@ func TestAppHome(t *testing.T) {
 }
 
 func TestApp_renderWithBadTemplate(t *testing.T) {
-    // Configura o caminho relativo para os templates
-    relativePath := "./../../templates/"
-    absPath, err := filepath.Abs(relativePath)
-    if err != nil {
-        t.Fatalf("Error getting absolute path: %v", err)
-    }
-    pathToTemplates = absPath
+	// Define o caminho para os templates com um template ruim
+	pathToTemplates = "./testdata/"
 
-    // Define o caminho para o template com erro
-    pathToTemplates = "./testdata/"
+	req, _ := http.NewRequest("GET", "/", nil)
+	req = addContextAndSessionToRequest(req, app)
+	rr := httptest.NewRecorder()
 
-    // Cria uma requisição HTTP GET para a raiz "/"
-    req, _ := http.NewRequest("GET", "/", nil)
-    req = addContextAndSessionToRequest(req, app)
-
-    // Cria um gravador de resposta HTTP
-    rr := httptest.NewRecorder()
-
-    // Tenta renderizar o template "bad.page.gohtml"
-    err = app.render(rr, req, "bad.page.gohtml", &TemplateData{})
-
-    // Verifica se ocorreu um erro ao renderizar o template
-    if err == nil {
-        t.Error("esperado erro ao renderizar template ruim, mas não ocorreu")
-    }
+	err := app.render(rr, req, "bad.page.gohtml", &TemplateData{})
+	if err == nil {
+		t.Error("expected error from bad template, but did not get one")
+	}
 }
 
 // getCtx retorna um contexto com um valor adicionado
@@ -136,6 +102,8 @@ func getCtx(req *http.Request) context.Context {
 // addContextAndSessionToRequest adiciona contexto e sessão à requisição
 func addContextAndSessionToRequest(req *http.Request, app application) *http.Request {
 	req = req.WithContext(getCtx(req))
+
 	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
+
 	return req.WithContext(ctx)
 }
