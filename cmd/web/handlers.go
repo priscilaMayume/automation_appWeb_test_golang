@@ -6,35 +6,57 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"path/filepath"
 	"time"
 )
 
-var pathToTemplates = "./templates/"
+var pathToTemplates string
 
+func init() {
+    // Define o caminho relativo para os templates
+    relativePath := "./templates/"
+    absPath, err := filepath.Abs(relativePath)
+    if err != nil {
+        log.Fatalf("Error getting absolute path: %v", err)
+    }
+    pathToTemplates = absPath
+}
+
+// Handler para a página inicial
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
+	log.Println("Home handler called") // Debug
 	var td = make(map[string]any)
 
 	// Verifica se a sessão "test" existe
 	if app.Session.Exists(r.Context(), "test") {
 		msg := app.Session.GetString(r.Context(), "test")
 		td["test"] = msg
+		log.Println("Session exists with value:", msg) // Debug
 	} else {
 		// Adiciona um valor à sessão "test" com a data e hora atual
-		app.Session.Put(r.Context(), "test", "Hit this page at " + time.Now().UTC().String())
+		newValue := "Hit this page at " + time.Now().UTC().String()
+		app.Session.Put(r.Context(), "test", newValue)
+		log.Println("Session created with value:", newValue) // Debug
 	}
-	_ = app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
+	err := app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
+	if err != nil {
+		log.Println("Error rendering template:", err) // Debug
+	}
 }
 
+// Estrutura para os dados do template
 type TemplateData struct {
 	IP   string
 	Data map[string]any
 }
 
+// Método para renderizar templates
 func (app *application) render(w http.ResponseWriter, r *http.Request, t string, data *TemplateData) error {
 	// Faz o parse do template a partir do disco.
 	parsedTemplate, err := template.ParseFiles(path.Join(pathToTemplates, t), path.Join(pathToTemplates, "base.layout.gohtml"))
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		log.Println("Error parsing templates:", err) // Debug
 		return err
 	}
 
@@ -43,16 +65,18 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, t string,
 	// Executa o template, passando os dados, se houver
 	err = parsedTemplate.Execute(w, data)
 	if err != nil {
+		log.Println("Error executing template:", err) // Debug
 		return err
 	}
 
 	return nil
 }
 
+// Handler para login
 func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Println(err)
+		log.Println("Error parsing form:", err) // Debug
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
