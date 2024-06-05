@@ -1,10 +1,11 @@
 package main
 
 import (
-	"database/sql"
-	"flag"
+	"flag" // Importando o pacote data usando caminho relativo	"flag"
 	"log"
 	"net/http"
+
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/db"
 
 	"github.com/alexedwards/scs/v2"
 )
@@ -12,7 +13,7 @@ import (
 // application estrutura que contém o gerenciador de sessões
 type application struct {
 	DSN string
-	DB *sql.DB
+	DB db.PostgresConn
 	Session *scs.SessionManager
 }
 
@@ -29,7 +30,7 @@ func main() {
 
 
 	}
-	app.DB = conn
+	app.DB = db.PostgresConn{DB : conn}
 
 
 	// Obtém um gerenciador de sessões
