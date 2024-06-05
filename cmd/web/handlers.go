@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"path"
 	"time"
+
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/data"
 )
 
 // Define o caminho para os templates
@@ -30,14 +31,24 @@ func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	_ = app.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
 }
 
+// Handler para a página Profile
+func (app *application) Profile(w http.ResponseWriter, r *http.Request) {
+	// Renderiza o template
+	_ = app.render(w, r, "profile.page.gohtml", &TemplateData{})
+}
+
+
 // Estrutura de dados para passar para o template
 type TemplateData struct {
 	IP   string
-	Data map[string]interface{}
+	Data map[string]any
+	Error string
+	Flash string
+	User data.User
 }
 
 // Função para renderizar o template
-func (app *application) render(w http.ResponseWriter, r *http.Request, t string, data *TemplateData) error {
+func (app *application) render(w http.ResponseWriter, r *http.Request, t string, td *TemplateData) error {
 	// Faz o parse do template do disco
 	parsedTemplate, err := template.ParseFiles(path.Join(pathToTemplates, t), path.Join(pathToTemplates, "base.layout.gohtml"))
 	if err != nil {
@@ -46,10 +57,12 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, t string,
 	}
 
 	// Obtém o IP do contexto
-	data.IP = app.ipFromContext(r.Context())
+	td.IP = app.ipFromContext(r.Context())
+	td.Error = app.Session.PopString(r.Context(), "error")
+	td.Flash = app.Session.PopString(r.Context(), "flash")
 
 	// Executa o template, passando os dados
-	err = parsedTemplate.Execute(w, data)
+	err = parsedTemplate.Execute(w, td)
 	if err != nil {
 		return err
 	}
@@ -72,7 +85,9 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 	form.Required("email", "password")
 
 	if !form.Valid() {
-		fmt.Fprint(w, "failed validation")
+		// redirect para o a pg de login com msg de erro
+		app.Session.Put(r.Context(), "error", "Invalid login Credential")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -82,12 +97,24 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := app.DB.GetUserByEmail(email)
 	if err != nil {
-		log.Println(err)
+		// redirect para o a pg de login com msg de erro
+		app.Session.Put(r.Context(), "error", "Invalid login!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
-	
-	log.Println("From database: ", user.FirstName)
 
-	log.Println(email, password)
+	log.Println(password, user.FirstName)
 
-	fmt.Fprint(w, email)
+	// autenticação do user
+
+	// Redirect de autenticação errada
+
+	// Previnir fixation attack
+	_ = app.Session.RenewToken(r.Context())
+
+	// armazena menssagem de sucesso na sessao
+
+	//redirect para outras paginas
+	app.Session.Put(r.Context(), "flash", "Successfully Logged In!")
+	http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
 }
