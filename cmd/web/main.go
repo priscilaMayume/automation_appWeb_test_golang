@@ -1,13 +1,14 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag" // Importando o pacote data usando caminho relativo	"flag"
 	"log"
 	"net/http"
 
-	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/db"
-
 	"github.com/alexedwards/scs/v2"
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/data"
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/db"
 )
 
 // application estrutura que contém o gerenciador de sessões
@@ -18,6 +19,8 @@ type application struct {
 }
 
 func main() {
+
+	gob.Register(data.User{})
 	// Configura a aplicação
 	app := application{}
 

@@ -103,7 +103,11 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(password, user.FirstName)
+	if !app.authenticate(r, user, password) {
+		app.Session.Put(r.Context(), "error", "Invalid Login!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	// autenticação do user
 
@@ -117,4 +121,17 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 	//redirect para outras paginas
 	app.Session.Put(r.Context(), "flash", "Successfully Logged In!")
 	http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
+}
+
+func (app *application) authenticate(r *http.Request, user *data.User, password string) bool {
+	// Verifica se a senha fornecida corresponde à senha armazenada para o usuário
+	if valid, err := user.PasswordMatches(password); err != nil || !valid {
+		// Se houve um erro ou a senha não for válida, retorna falso
+		return false
+	}
+
+	// Se a senha for válida, armazena a estrutura do usuário na sessão
+	app.Session.Put(r.Context(), "user", user)
+	// Retorna verdadeiro para indicar que a autenticação foi bem-sucedida
+	return true
 }
