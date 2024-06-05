@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -108,4 +109,83 @@ func addContextAndSessionToRequest(req *http.Request, app application) *http.Req
 	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
 
 	return req.WithContext(ctx)
+}
+
+// Testa a função de login do aplicativo
+func Test_app_Login(t *testing.T) {
+	// Define os casos de teste com dados de entrada e resultados esperados
+	var tests = []struct{
+		name string // Nome do caso de teste
+		postedData url.Values // Dados do formulário enviados na requisição
+		expectedStatusCode int // Código de status HTTP esperado na resposta
+		expectedLoc string // URL esperada para redirecionamento
+	}{
+		{
+			name: "valid login", // Caso de teste para login válido
+			postedData: url.Values{
+				"email": {"admin@example.com"},
+				"password": {"secret"},
+			},
+			expectedStatusCode: http.StatusSeeOther, // Espera redirecionamento 303
+			expectedLoc: "/user/profile", // Espera redirecionar para perfil do usuário
+		},
+		{
+			name: "missing form data", // Caso de teste para dados do formulário ausentes
+			postedData: url.Values{
+				"email": {""},
+				"password": {""},
+			},
+			expectedStatusCode: http.StatusSeeOther, // Espera redirecionamento 303
+			expectedLoc: "/", // Espera redirecionar para a página inicial
+		},
+		{
+			name: "user not found", // Caso de teste para usuário não encontrado
+			postedData: url.Values{
+				"email": {"you@there.com"},
+				"password": {"password"},
+			},
+			expectedStatusCode: http.StatusSeeOther, // Espera redirecionamento 303
+			expectedLoc: "/", // Espera redirecionar para a página inicial
+		},
+		{
+			name: "bad credentials", // Caso de teste para credenciais incorretas
+			postedData: url.Values{
+				"email": {"admin@example.com"},
+				"password": {"password"},
+			},
+			expectedStatusCode: http.StatusSeeOther, // Espera redirecionamento 303
+			expectedLoc: "/", // Espera redirecionar para a página inicial
+		},
+	}
+
+	// Itera sobre cada caso de teste
+	for _, e := range tests {
+		// Cria uma nova requisição HTTP POST com os dados do formulário
+		req, _ := http.NewRequest("POST", "/login", strings.NewReader(e.postedData.Encode()))
+		// Adiciona contexto e sessão à requisição
+		req = addContextAndSessionToRequest(req, app)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		
+		// Cria um ResponseRecorder para capturar a resposta
+		rr := httptest.NewRecorder()
+		// Define o handler da função de login
+		handler := http.HandlerFunc(app.Login)
+		// Executa a requisição
+		handler.ServeHTTP(rr, req)
+
+		// Verifica se o código de status retornado é o esperado
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("%s: retornou o código de status errado; esperava %d, mas obteve %d", e.name, e.expectedStatusCode, rr.Code)
+		}
+
+		// Verifica se a URL de redirecionamento é a esperada
+		actualLoc, err := rr.Result().Location()
+		if err == nil {
+			if actualLoc.String() != e.expectedLoc {
+				t.Errorf("%s: esperava redirecionamento para %s, mas foi para %s", e.name, e.expectedLoc, actualLoc.String())
+			}
+		} else {
+			t.Errorf("%s: cabeçalho de localização não definido", e.name)
+		}
+	}
 }
