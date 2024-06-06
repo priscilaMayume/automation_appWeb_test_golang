@@ -20,7 +20,10 @@ func (app *application) routes() http.Handler {
 	mux.Get("/", app.Home)
 	mux.Post("/login", app.Login)
 
-	mux.Get("/user/profile", app.Profile)
+	mux.Route("/user", func(mux chi.Router){
+		mux.Use(app.auth)
+		mux.Get("/profile", app.Profile)
+	})
 
 	// ativos estáticos
 	fileServer := http.FileServer(http.Dir("./static/"))

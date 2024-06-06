@@ -27,7 +27,7 @@ func (app *application) addIPToContext(next http.Handler) http.Handler {
 		if err != nil {
 			ip, _, _ = net.SplitHostPort(r.RemoteAddr)
 			if len(ip) == 0 {
-				ip = "desconhecido"
+				ip = "unknown"
 			}
 			ctx = context.WithValue(r.Context(), contextUserKey, ip)
 		} else {
@@ -41,12 +41,12 @@ func (app *application) addIPToContext(next http.Handler) http.Handler {
 func getIP(r *http.Request) (string, error) {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return "desconhecido", err
+		return "unknown", err
 	}
 
 	userIP := net.ParseIP(ip)
 	if userIP == nil {
-		return "", fmt.Errorf("userip: %q não é IP:porta", r.RemoteAddr)
+		return "", fmt.Errorf("userip: %q is not IP:port", r.RemoteAddr)
 	}
 
 	forward := r.Header.Get("X-Forwarded-For")
@@ -59,4 +59,20 @@ func getIP(r *http.Request) (string, error) {
 	}
 
 	return ip, nil
+}
+
+func (app *application) auth(next http.Handler) http.Handler {
+	// Retorna um manipulador HTTP que envolve a função de próxima manipulação
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verifica se a sessão contém a chave "user"
+		if !app.Session.Exists(r.Context(), "user") {
+			// Se não existir, coloca uma mensagem de erro na sessão
+			app.Session.Put(r.Context(), "error", "Log in first!")
+			// Redireciona o usuário para a página inicial
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
+		// Se o usuário estiver autenticado, chama o próximo manipulador
+		next.ServeHTTP(w, r)
+	})
 }

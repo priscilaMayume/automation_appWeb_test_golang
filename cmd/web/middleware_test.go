@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/data"
 )
 
 func Test_application_addIPToContext(t *testing.T) {
@@ -72,5 +74,49 @@ func Test_application_ipFromContext(t *testing.T) {
 	// Executa o teste
 	if !strings.EqualFold("qualquer coisa", ip) {
 		t.Error("valor incorreto retornado do contexto")
+	}
+}
+
+func Test_app_auth(t *testing.T) {
+	// Definindo um próximo manipulador de teste que não faz nada
+	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+
+	})
+
+	// Definindo os casos de teste com dois cenários: "logged in" e "not logged in"
+	var tests = []struct{
+		name string
+		isAuth bool
+	}{
+		{"logged in", true},
+		{"not logged in", false},
+	}
+
+	// Looping através de cada caso de teste
+	for _, e := range tests {
+		// Obter o manipulador a ser testado
+		handlerToTest := app.auth(nextHandler)
+		// Criar uma nova requisição de teste
+		req := httptest.NewRequest("GET", "http://testing", nil)
+		// Adicionar contexto e sessão à requisição
+		req = addContextAndSessionToRequest(req, app)
+		// Se o caso de teste for autenticado, colocar o usuário na sessão
+		if e.isAuth {
+			app.Session.Put(req.Context(), "user", data.User{ID: 1})
+		}
+		// Criar um novo gravador de resposta de teste
+		rr := httptest.NewRecorder()
+		// Chamar o manipulador com a requisição e o gravador de resposta
+		handlerToTest.ServeHTTP(rr, req)
+
+		// Verificar se o código de status está correto quando autenticado
+		if e.isAuth && rr.Code != http.StatusOK {
+			t.Errorf("%s: esperado código de status 200, mas obteve %d", e.name, rr.Code)
+		}
+
+		// Verificar se o código de status está correto quando não autenticado
+		if !e.isAuth && rr.Code != http.StatusTemporaryRedirect {
+			t.Errorf("%s: esperado código de status 307, mas obteve %d", e.name, rr.Code)
+		}
 	}
 }
