@@ -8,13 +8,14 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/data"
-	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/db"
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/repository"
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/repository/dbrepo"
 )
 
 // application estrutura que contém o gerenciador de sessões
 type application struct {
 	DSN string
-	DB db.PostgresConn
+	DB repository.DatabaseRepo
 	Session *scs.SessionManager
 }
 
@@ -33,7 +34,7 @@ func main() {
 
 	}
 	defer conn.Close()
-	app.DB = db.PostgresConn{DB : conn}
+	app.DB = &dbrepo.PostgresDBRepo{DB: conn}
 
 
 	// Obtém um gerenciador de sessões
