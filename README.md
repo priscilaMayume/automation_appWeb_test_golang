@@ -23,3 +23,6 @@ go tool cover -html=coverage.out
 <br>
 Opens a coverage report in HTML format.
 <br><br>
+Tag for running unit tests and integration tests
+<br>
+go test -v -tags=integration ./…
