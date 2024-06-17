@@ -1,14 +1,24 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
+	"image"
+	"image/png"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/priscilaMayume/automation_appWeb_test_golang/pkg/data"
 )
 
 func Test_application_handlers(t *testing.T) {
@@ -213,4 +223,127 @@ func Test_app_Login(t *testing.T) {
 			t.Errorf("%s: cabeçalho de localização não definido", e.name)
 		}
 	}
+}
+
+func Test_app_UploadFiles(t *testing.T) {
+	// configurar pipes
+	pr, pw := io.Pipe()
+
+	// criar um novo escritor, do tipo *io.Writer
+	writer := multipart.NewWriter(pw)
+
+	// criar um waitgroup e adicionar 1 a ele
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	// simular o upload de um arquivo usando uma goroutine e nosso writer
+	go simulatePNGUpload("./testdata/img.png", writer, t, wg)
+
+	// ler do pipe que recebe os dados
+	request := httptest.NewRequest("POST", "/", pr)
+	request.Header.Add("Content-Type", writer.FormDataContentType())
+
+	// chamar app.UploadFiles
+	uploadedFiles, err := app.UploadFiles(request, "./testdata/uploads/")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// realizar nossos testes
+	if _, err := os.Stat(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName)); os.IsNotExist(err) {
+		t.Errorf("esperava-se que o arquivo existisse: %s", err.Error())
+	}
+
+	// limpar
+	_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName))
+
+	wg.Wait()
+	
+}
+
+func simulatePNGUpload(fileToUpload string, writer *multipart.Writer, t *testing.T, wg *sync.WaitGroup) {
+	defer writer.Close()
+	defer wg.Done()
+
+	// criar o campo de dados do formulário 'file' com o valor sendo o nome do arquivo
+	part, err := writer.CreateFormFile("file", path.Base(fileToUpload))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// abrir o arquivo real
+	f, err := os.Open(fileToUpload)
+	if err != nil {
+		t.Error(err)
+	}
+	defer f.Close()
+
+	// decodificar a imagem
+	img, _, err := image.Decode(f)
+	if err != nil {
+		t.Error("error decoding image:", err)
+	}
+
+	// escrever o png para nosso io.Writer
+	err = png.Encode(part, img)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_app_UploadProfilePic(t *testing.T) {
+	uploadPath = "./testdata/uploads"
+	filePath := "./testdata/img.png"
+
+	// especifica um nome de campo para o formulário
+	fieldName := "file"
+
+	// cria um bytes.Buffer para atuar como o corpo da requisição
+	body := new(bytes.Buffer)
+
+	// cria um novo writer
+	mw := multipart.NewWriter(body)
+
+	// abre o arquivo a ser enviado
+	file, err := os.Open(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// cria um campo de formulário do tipo arquivo
+	w, err := mw.CreateFormFile(fieldName, filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// copia o conteúdo do arquivo para o campo do formulário
+	if _, err := io.Copy(w, file); err != nil {
+		t.Fatal(err)
+	}
+
+	// fecha o writer do multipart
+	mw.Close()
+
+	// cria uma nova requisição HTTP de teste
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
+	req = addContextAndSessionToRequest(req, app)
+	app.Session.Put(req.Context(), "user", data.User{ID: 1})
+	req.Header.Add("Content-Type", mw.FormDataContentType())
+
+	// cria um ResponseRecorder para registrar a resposta
+	rr := httptest.NewRecorder()
+
+	// cria um manipulador HTTP para a função UploadProfilePic
+	handler := http.HandlerFunc(app.UploadProfilePic)
+
+	// chama o manipulador HTTP
+	handler.ServeHTTP(rr, req)
+
+	// verifica se o código de status HTTP está correto
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("wrong status code")
+	}
+
+	// remove o arquivo enviado após o teste
+	_ = os.Remove("./testdata/uploads/img.png")
 }

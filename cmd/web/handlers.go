@@ -16,6 +16,7 @@ import (
 
 // Define o caminho para os templates
 var pathToTemplates = "./templates/"
+var uploadPath = "./static/img"
 
 // Handler para a página inicial
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +148,7 @@ func (app *application) authenticate(r *http.Request, user *data.User, password 
 func (app *application) UploadProfilePic(w http.ResponseWriter, r *http.Request) {
 	
 	// chama uma função que extrai um arquivo de um upload (requisição)
-	files, err := app.UploadFiles(r, "./static/img")
+	files, err := app.UploadFiles(r, uploadPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
