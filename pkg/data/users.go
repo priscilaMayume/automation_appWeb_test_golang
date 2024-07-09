@@ -22,7 +22,7 @@ type User struct {
 
 // PasswordMatches usa o pacote bcrypt do Go para comparar uma senha fornecida pelo usuário
 // com o hash que temos armazenado para um determinado usuário no banco de dados. Se a senha
-// e o hash coincidirem, retornamos true; caso contrário, retornamos false.
+// e o hash coincidirem, retornamos true; caso contrário, retornamos false
 func (u *User) PasswordMatches(plainText string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(plainText))
 	if err != nil {
