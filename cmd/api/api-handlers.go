@@ -1,38 +1,72 @@
 package main
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
 
-// Função para autenticar um usuário
+	"golang.org/x/crypto/bcrypt"
+)
+
+type Credentials struct {
+	Username string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica de autenticação
+	var creds Credentials
+
+	// Lê o payload JSON.
+	err := app.readJSON(w, r, &creds)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
+
+	// Busca o usuário pelo endereço de e-mail.
+	user, err := app.DB.GetUserByEmail(creds.Username)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
+
+	// Verifica a senha.
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password))
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
+
+	// Gera tokens.
+	tokenPairs, err := app.generateTokenPair(user)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
+
+	// Envia o token para o usuário.
+	_ = app.writeJSON(w, http.StatusOK, tokenPairs)
 }
 
-// Função para atualizar o token de autenticação
 func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica de atualização de token
+	// Método ainda não implementado.
 }
 
-// Função para obter todos os usuários
 func (app *application) allUsers(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica para obter todos os usuários
+	// Método ainda não implementado.
 }
 
-// Função para obter um usuário específico
 func (app *application) getUser(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica para obter um usuário específico
+	// Método ainda não implementado.
 }
 
-// Função para atualizar um usuário existente
 func (app *application) updateUser(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica para atualizar um usuário
+	// Método ainda não implementado.
 }
 
-// Função para deletar um usuário
 func (app *application) deleteUser(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica para deletar um usuário
+	// Método ainda não implementado.
 }
 
-// Função para inserir um novo usuário
 func (app *application) insertUser(w http.ResponseWriter, r *http.Request) {
-	// Implementação da lógica para inserir um novo usuário
+	// Método ainda não implementado.
 }

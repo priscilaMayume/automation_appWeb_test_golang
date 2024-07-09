@@ -26,3 +26,22 @@ Opens a coverage report in HTML format.
 Tag for running unit tests and integration tests
 <br>
 go test -v -tags=integration ./…
+<br> <br> 
+
+<hr>
+
+<br> <br> 
+The database must be created locally
+<br> 
+docker-compose up -d
+<br> <br> 
+The service must be carried out
+<br> 
+go run ./cmd/api
+<hr>
+
+<br> <br> 
+CURL - Successful token generation
+<br> 
+curl http://localhost:8090/auth -X POST -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"secret"}'
+<br> <br>
